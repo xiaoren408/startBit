@@ -1,2 +1,0 @@
-# startBit
-just so so
