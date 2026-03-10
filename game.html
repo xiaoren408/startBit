@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>青花瓷大师</title>
+    <style>
+        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #gameCanvas { border: 4px solid #fff; cursor: none; }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const hajimiSound = new Audio('hajimi.mp3');
+    // --- 资源加载区 ---
+    const bg = new Image(); bg.src = 'bg.jpg';
+    const paddleImg = new Image(); paddleImg.src = 'paddle.jpg';
+
+    const G = {
+        state: 'MENU',
+        score: 0,
+        ball: { x: 400, y: 300, dx: 6, dy: 6, r: 8 },
+        paddle: { x: 340, y: 550, w: 120, h: 20 }
+    };
+
+    // --- 输入控制 ---
+    window.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        G.paddle.x = e.clientX - rect.left - G.paddle.w / 2;
+    });
+
+    window.addEventListener('mousedown', () => {
+        if (G.state !== 'PLAYING') {
+            hajimiSound.currentTime = 0; // 每次播放前重置时间，防止卡顿
+        hajimiSound.play();          // 播放声音
+            G.score = 0;
+            G.ball = { x: 400, y: 300, dx: 6, dy: -6, r: 8 };
+            G.state = 'PLAYING';
+             G.state = 'PLAYING';
+        }
+    });
+
+    // --- 逻辑区 ---
+    function update() {
+        if (G.state !== 'PLAYING') return;
+        G.ball.x += G.ball.dx;
+        G.ball.y += G.ball.dy;
+        if (G.ball.x - G.ball.r < 0 || G.ball.x + G.ball.r > 800) G.ball.dx *= -1;
+        if (G.ball.y - G.ball.r < 0) G.ball.dy *= -1;
+        
+        // 碰撞挡板
+        if (G.ball.y + G.ball.r >= G.paddle.y && G.ball.x >= G.paddle.x && G.ball.x <= G.paddle.x + G.paddle.w) {
+            G.ball.y = G.paddle.y - G.ball.r;
+            G.ball.dy = -Math.abs(G.ball.dy) - 0.2;
+            G.score += 10;
+            hajimiSound.currentTime = 0; 
+            hajimiSound.play();
+        }
+        if (G.ball.y > 600) G.state = 'GAMEOVER';
+    }
+
+    // --- 绘图区 ---
+    function draw() {
+        // 1. 背景始终置底
+        ctx.drawImage(bg, 0, 0, 800, 600);
+
+        if (G.state === 'PLAYING') {
+            // 2. 绘制挡板：优先图片，失败则 fallback 矩形
+            if (paddleImg.complete) {
+                ctx.drawImage(paddleImg, G.paddle.x, G.paddle.y, G.paddle.w, G.paddle.h);
+            } else {
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(G.paddle.x, G.paddle.y, G.paddle.w, G.paddle.h);
+            }
+            // 3. 绘制球
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(G.ball.x, G.ball.y, G.ball.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillText('Score: ' + G.score, 20, 30);
+        } else {
+            // 4. 菜单或结束画面遮罩
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(0, 0, 800, 600);
+            ctx.fillStyle = '#fff';
+            ctx.font = '40px Arial';
+            ctx.fillText(G.state === 'MENU' ? '点击开始' : '游戏结束! 分数:' + G.score, 280, 300);
+        }
+    }
+
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+    loop();
+</script>
+</body>
+</html>
